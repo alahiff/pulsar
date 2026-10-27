@@ -55,6 +55,7 @@ class LocalShell(BaseShellExec):
         persist=False,
         timeout=DEFAULT_TIMEOUT,
         timeout_check_interval=DEFAULT_TIMEOUT_CHECK_INTERVAL,
+        cwd=None,
         **kwds
     ):
         is_cmd_string = isinstance(cmd, str)
@@ -65,6 +66,7 @@ class LocalShell(BaseShellExec):
             stdout=outf,
             stderr=PIPE,
             shell=is_cmd_string,
+            cwd=cwd,
             preexec_fn=os.setpgrp,
         )
         # check process group until timeout

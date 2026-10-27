@@ -23,7 +23,7 @@ a configuration of
 The ``type`` of ``queued_python`` is indicating that the jobs are queued but
 that the queue is managed locally by Pulsar. Other possible values for
 ``type`` include ``queued_drmaa``, ``queued_condor``, ``queued_cli``,
-``queued_external_drmaa`` (examples of each follow).
+``queued_external_drmaa``, ``queued_external_cli`` (examples of each follow).
 
 Named Managers
 -------------------------------
@@ -170,6 +170,41 @@ validated before use: it must match ``[A-Za-z0-9._][A-Za-z0-9._-]*``. A script t
 exits successfully but prints nothing, or prints a name outside that set, fails the
 job rather than falling through to an unintended account. The script must return within
 ``user_mapping_timeout`` seconds (default 30).
+
+Run-As-Real User CLI
+-------------------------------
+
+The ``queued_external_cli`` manager type is the command-line counterpart of
+``queued_external_drmaa``: it submits jobs with the ``queued_cli`` job plugins
+(``Slurm``, ``Torque``, ...) but runs them as the user requested by the client.
+
+::
+
+    managers:
+      _default_:
+        type: queued_external_cli
+        job_plugin: Slurm
+        production: true
+        # Following are optional - should leave as defaults in most cases.
+        #chown_working_directory_script: scripts/chown_working_directory.bash
+        #user_mapping_script:
+        #user_mapping_timeout: 30
+
+The job directory is chowned to the user (using the same
+``chown_working_directory`` script, ``user_mapping_script`` and ``submit_user``
+setup as ``queued_external_drmaa`` above), the submission and cancellation
+commands (e.g. ``sbatch`` and ``scancel``) are executed through
+``sudo -n -E -u <user>`` and the directory is chowned back to the Pulsar user
+once the job has finished. Status queries (e.g. ``squeue``) run as the Pulsar
+user. The sudoers rules for the Pulsar user therefore need to allow the
+scheduler commands (as well as the chown script) for the target users, for
+example::
+
+    pulsar ALL=(%galaxy_users) NOPASSWD: SETENV: /usr/bin/sbatch, /usr/bin/scancel
+    pulsar ALL=(root) NOPASSWD: SETENV: /usr/local/bin/pulsar-chown-working-directory
+
+This manager requires the default ``LocalShell`` shell plugin (a remote
+``shell_plugin`` is rejected).
 
 More Options
 -------------------------------

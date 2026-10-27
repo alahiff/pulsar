@@ -83,8 +83,9 @@ class CliQueueManager(ExternalBaseManager):
         job_script_kwargs.update(extra_kwargs)
         script = job_script(**job_script_kwargs)
         script_path = self._write_job_script(job_id, script)
+        self._prepare_submission(job_id, submit_params)
         submission_command = job_interface.submit(script_path)
-        cmd_out = shell.execute(submission_command)
+        cmd_out = self._execute_submission(shell, submission_command, job_id)
         if cmd_out.returncode != 0:
             log.warning("Failed to submit job - command was:\n%s" % submission_command)
             raise Exception("Failed to submit job, error was:\n%s" % cmd_out.stderr)
@@ -98,13 +99,24 @@ class CliQueueManager(ExternalBaseManager):
             raise Exception("Failed to obtain external id")
         self._register_external_id(job_id, external_id)
 
+    def _prepare_submission(self, job_id: str, submit_params: Dict[str, str]) -> None:
+        """Hook called once the job script is written, before it is submitted."""
+
+    def _execute_submission(self, shell, submission_command: str, job_id: str):
+        """Hook to run the submission command (e.g. as another user)."""
+        return shell.execute(submission_command)
+
+    def _execute_kill(self, shell, kill_command: str, external_id: str):
+        """Hook to run the kill command (e.g. as another user)."""
+        return shell.execute(kill_command)
+
     def __get_cli_plugins(self):
         return self.cli_interface.get_plugins(self.shell_params, self.job_params)
 
     def _kill_external(self, external_id: str) -> None:
         shell, job_interface = self.__get_cli_plugins()
         kill_command = job_interface.delete(external_id)
-        shell.execute(kill_command)
+        self._execute_kill(shell, kill_command, external_id)
 
     def _get_status_external(self, external_id: str) -> "StateLiteral":
         shell, job_interface = self.__get_cli_plugins()

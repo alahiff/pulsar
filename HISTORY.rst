@@ -9,6 +9,9 @@ History
 0.16.1.dev0
 ---------------------
 * Fix the Ruff 0.17 datetime import-alias lint failures. `Pull Request 546`_
+* Add the ``queued_external_cli`` job manager, a run-as-real-user variant of
+  ``queued_cli``, sharing its user mapping and ownership handling with
+  ``queued_external_drmaa``.
 
 
 
